@@ -1,2 +1,2 @@
 # QMLypso
-Qualypso 2022 hackathon project
+Qalypso 2022 hackathon project

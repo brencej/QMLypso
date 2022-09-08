@@ -11,40 +11,57 @@ from pytket.utils.operators import QubitPauliOperator
 from pytket.pauli import Pauli, QubitPauliString
 from pytket.partition import PauliPartitionStrat
 
+from sympy import symbols
 
 
-def build_test_circuit(par):
+
+def build_test_circuit():
+    a = symbols("a")
     circ = Circuit(1)
-    circ.H(0)
-    circ.Ry(angle=par[0], qubit=0)
-    #circ.Rx(angle=par[1], qubit=0)
+    #circ.H(0)
+    circ.Ry(angle=a, qubit=0)
+    #circ.Ry(angle=b, qubit=1)
     circ.measure_all()
     return circ
 
-def get_one_derivative(op, i, circuit_f, par, backend):
+
+def get_one_derivative(i, op, circuit, par, sym, backend):
     """ arguments:
     op - operator
     i - index of parameter to differentiate
     circuit_f - function that creates the curcuit with parameters par
     par - list of parameter values
+    sym - list of symbols used in the symbolic circuit
     backend - backend to sue for gradient computation
     
     returns:
     (float) the i-th element of the gradient vector
     """
-    circ_plus = circuit_f(par[:i] + [par[i]+np.pi/2] + [par[i+1:]])
-    circ_minus = circuit_f(par[:i] + [par[i] - np.pi/2] + [par[i+1:]])
-
-    exp_val_left =  get_operator_expectation_value(circ_plus, op, backend, n_shots=100, partition_strat=PauliPartitionStrat.CommutingSets)
-    exp_val_right =  get_operator_expectation_value(circ_minus, op, backend, n_shots=100, partition_strat=PauliPartitionStrat.CommutingSets)
-    
+    # make copies of the ciruit
+    circ_plus = circuit.copy()
+    circ_minus = circuit.copy()
+    # pair up symbols and parameter values and form a dictionary
+    par_dict_plus = dict(zip(sym, par))
+    par_dict_minus = dict(zip(sym, par))
+    print(par_dict_minus)
+    # perform the parameter shift on the i-th parameter value
+    par_dict_plus[sym[i]] = par[i] + np.pi/2
+    par_dict_minus[sym[i]] = par[i] - np.pi/2
+    # subsitute the symbols in the dict with their parameter value
+    circ_plus.symbol_substitution(par_dict_plus)
+    circ_minus.symbol_substitution(par_dict_minus)
+    # estimate the expectation values
+    exp_val_left =  get_operator_expectation_value(circ_plus, op, backend, n_shots=1000, partition_strat=PauliPartitionStrat.CommutingSets)
+    exp_val_right =  get_operator_expectation_value(circ_minus, op, backend, n_shots=1000, partition_strat=PauliPartitionStrat.CommutingSets)
+    # compute the derivative according to the parameter shift rule for Pauli matrices
     return 0.5*(np.real(exp_val_left) - np.real(exp_val_right))
 
-def get_gradient(op, circuit_f, par, backend):
+def get_gradient(op, circuit, par, symbols, backend):
     """ arguments:
     op - operator
     circuit_f - function that creates the curcuit with parameters par
     par - list of parameter values
+    sym - list of symbols used in the symbolic circuit
     backend - backend to sue for gradient computation
 
     returns:
@@ -52,7 +69,7 @@ def get_gradient(op, circuit_f, par, backend):
     """
     grad = []
     for i in range(len(par)):
-        dTheta = get_one_derivative(op, i, circuit_f, par, backend)
+        dTheta = get_one_derivative(i, op, circuit, par, symbols, backend)
         grad += [dTheta]
     
     return grad
@@ -67,8 +84,8 @@ if __name__ == "__main__":
             z : 1})
 
     par = [0.7, 0.4]
-    circ = build_test_circuit(par)
+    circ = build_test_circuit()
     print(circ)
-    grad = get_gradient(op, build_test_circuit, par, backend)
+    grad = get_gradient(op, circ, [np.pi], [symbols("a")], backend)
 
     print(grad)

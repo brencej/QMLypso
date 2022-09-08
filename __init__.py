@@ -1,0 +1,1 @@
+from gradient import get_gradient, get_partial_derivative

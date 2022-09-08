@@ -21,7 +21,7 @@ def build_test_circuit():
     #circ.H(0)
     circ.Ry(angle=a, qubit=0)
     #circ.Ry(angle=b, qubit=1)
-    circ.measure_all()
+    #circ.measure_all()
     return circ
 
 
@@ -51,8 +51,8 @@ def get_one_derivative(i, op, circuit, par, sym, backend):
     circ_plus.symbol_substitution(par_dict_plus)
     circ_minus.symbol_substitution(par_dict_minus)
     # estimate the expectation values
-    exp_val_left =  get_operator_expectation_value(circ_plus, op, backend, n_shots=1000, partition_strat=PauliPartitionStrat.CommutingSets)
-    exp_val_right =  get_operator_expectation_value(circ_minus, op, backend, n_shots=1000, partition_strat=PauliPartitionStrat.CommutingSets)
+    exp_val_left =  get_operator_expectation_value(circ_plus, op, backend, n_shots=10, partition_strat=PauliPartitionStrat.CommutingSets)
+    exp_val_right =  get_operator_expectation_value(circ_minus, op, backend, n_shots=10, partition_strat=PauliPartitionStrat.CommutingSets)
     # compute the derivative according to the parameter shift rule for Pauli matrices
     return 0.5*(np.real(exp_val_left) - np.real(exp_val_right))
 
@@ -83,9 +83,9 @@ if __name__ == "__main__":
     op = QubitPauliOperator({
             z : 1})
 
-    par = [0.7, 0.4]
+    #par = [0.7, 0.4]
     circ = build_test_circuit()
     print(circ)
-    grad = get_gradient(op, circ, [np.pi], [symbols("a")], backend)
+    grad = get_gradient(op, circ, [0.49], [symbols("a")], backend)
 
     print(grad)

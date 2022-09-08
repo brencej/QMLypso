@@ -20,8 +20,9 @@ def build_test_circuit(par):
     circ.measure_all()
     return circ
 
-def find_one_derivative(i, circuit_f, par, backend):
+def find_one_derivative(op, i, circuit_f, par, backend):
     """ inputs:
+    op - operator
     i - index of parameter to differentiate
     circuit_f - function that creates the curcuit with parameters par
     par - list of parameter values
@@ -30,9 +31,10 @@ def find_one_derivative(i, circuit_f, par, backend):
     circ_plus = circuit_f(par[:i] + [par[i]+np.pi/2] + [par[i+1:]])
     circ_minus = circuit_f(par[:i] + [par[i] - np.pi/2] + [par[i+1:]])
 
-    #...
-    d_theta = None
-    return d_theta
+    exp_val_left =  get_operator_expectation_value(circ_plus, op, backend, n_shots=100, partition_strat=PauliPartitionStrat.CommutingSets)
+    exp_val_right =  get_operator_expectation_value(circ_minus, op, backend, n_shots=100, partition_strat=PauliPartitionStrat.CommutingSets)
+    
+    return 0.5*(exp_val_left - exp_val_right)
 
 if __name__ == "__main__":
     backend = AerBackend()
@@ -43,9 +45,6 @@ if __name__ == "__main__":
     op = QubitPauliOperator({
             z : 1})
 
-    exp_val = get_operator_expectation_value(
-            circ,
-            op,
-            backend,
-            n_shots=10000,
-            partition_strat=PauliPartitionStrat.CommutingSets)
+    grad = find_one_derivative(op, 0, build_test_circuit, [1], backend)
+
+    print(grad)

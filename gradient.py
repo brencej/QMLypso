@@ -5,7 +5,7 @@ from pytket.utils import get_operator_expectation_value
 from pytket.partition import PauliPartitionStrat
 
 
-def get_partial_derivative(i, op, circuit, par, sym, backend):
+def get_partial_derivative(i, op, circuit, par, sym, backend, shots=100):
     """ Computes the partial derivative in respect to parameter i of the expectation value 
     of operator op, using the parameter shift rule. Currently supports only rotation gates.
     Arguments:
@@ -32,12 +32,12 @@ def get_partial_derivative(i, op, circuit, par, sym, backend):
     circ_plus.symbol_substitution(par_dict_plus)
     circ_minus.symbol_substitution(par_dict_minus)
     # estimate the expectation values
-    exp_val_left =  get_operator_expectation_value(circ_plus, op, backend, n_shots=10, partition_strat=PauliPartitionStrat.CommutingSets)
-    exp_val_right =  get_operator_expectation_value(circ_minus, op, backend, n_shots=10, partition_strat=PauliPartitionStrat.CommutingSets)
+    exp_val_left =  get_operator_expectation_value(circ_plus, op, backend, n_shots=shots, partition_strat=PauliPartitionStrat.CommutingSets)
+    exp_val_right =  get_operator_expectation_value(circ_minus, op, backend, n_shots=shots, partition_strat=PauliPartitionStrat.CommutingSets)
     # compute the derivative according to the parameter shift rule for Pauli matrices
     return 0.5*(np.real(exp_val_left) - np.real(exp_val_right))
 
-def get_gradient(op, circuit, par, symbols, backend):
+def get_gradient(op, circuit, par, symbols, backend, shots=100):
     """ Computes the gradient of the expectation value of operator op, 
     using the parameter shift rule. Currently supports only rotation gates.
     Arguments:
@@ -52,7 +52,7 @@ def get_gradient(op, circuit, par, symbols, backend):
     """
     grad = []
     for i in range(len(par)):
-        dTheta = get_partial_derivative(i, op, circuit, par, symbols, backend)
+        dTheta = get_partial_derivative(i, op, circuit, par, symbols, backend, shots=shots)
         grad += [dTheta]
     
     return grad

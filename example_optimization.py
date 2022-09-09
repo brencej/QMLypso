@@ -1,5 +1,7 @@
 import numpy as np
 from sympy import symbols
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
 
 from pytket import Circuit, Qubit
 from pytket.circuit import Pauli
@@ -9,7 +11,6 @@ from pytket.utils.operators import QubitPauliOperator
 from pytket.pauli import Pauli, QubitPauliString
 from pytket.utils import get_operator_expectation_value
 from pytket.partition import PauliPartitionStrat
-
 
 from gradient import get_gradient
 
@@ -48,22 +49,56 @@ if __name__ == "__main__":
 
     circ, a = get_test_circuit()
     sym = [a]
-    par = [1/5]
-
-    def f(par):
-        par_dict = dict(zip(sym, par))
+    par = [0.5]
+    
+    def f(*pars):
+        par_dict = dict(zip(sym, pars))
         circ_par = circ.copy()
         circ_par.symbol_substitution(par_dict)
-        return get_operator_expectation_value(circ_par, op, backend, n_shots=10, partition_strat=PauliPartitionStrat.CommutingSets)
+        v = np.real(get_operator_expectation_value(circ_par, op, backend, n_shots=1000, partition_strat=PauliPartitionStrat.CommutingSets))
+        print(pars, v)
+        return v
 
-    tol = 1e-3; step = 0.05
-    best_par = list(par)
-    best_val = f(par)
-    pars, vals = [best_par], [best_val]
+    #res = minimize(f, par, method="BFGS")
+    #print(res)
+    pars = [-2 + 0.05*i for i in range(80)]
+    vals = [f(p) for p in pars]
+    grads = [get_gradient(op, circ, [p], sym, backend, shots=1000) for  p in pars]
 
-    
-    print("f(0) = ", best_val)
-    print("grad(0) = ", get_gradient(op, circ, par, sym, backend))
+    import pandas as pd
+    df = pd.DataFrame()
+    df["par"] = pars
+    df["val"] = vals
+    df["grad"] = grads
+    df.to_csv("experiment1_1000shots.csv")
+    plt.plot(pars, vals)
+    plt.plot(pars, grads)
+    plt.show()
+
+    if False:
+        tol = 1e-2; step = 0.01; max_n = 100; n=0
+        best_par = list(par)
+        best_val = f(par)
+        last_best_val = 10**9
+        pars, vals = [best_par], [best_val]
+
+        while np.abs(best_val - last_best_val)/last_best_val > tol and n < max_n:
+            grad = get_gradient(op, circ, pars[-1], sym, backend)
+            print(pars[-1], grad, vals[-1])
+            new_par = list(np.array(pars[-1]) - step*np.array(grad))
+            new_val = f(new_par)
+            pars += [new_par]; vals += [new_val]
+            if new_val < best_val:
+                last_best_val = best_val
+                best_val = new_val
+                best_par = new_par
+            n += 1
+        
+        print("Minimum: ", best_par, best_val)
+
+        plt.plot(vals)
+        plt.show()
+
 
     #circ, syms, parameters = get_randomized_circuit(3, 2)
     #print(circ)

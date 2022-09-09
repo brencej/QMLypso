@@ -57,3 +57,8 @@ def get_gradient(op, circuit, par, symbols, backend, shots=100):
     
     return grad
 
+def get_scipy_wrapper_for_gradient(op, circuit, symbols, backend, shots=100):
+    def jac(x, *args):
+        return get_gradient(op, circuit, x, symbols, backend, shots=shots)
+    return jac
+

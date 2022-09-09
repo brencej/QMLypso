@@ -63,7 +63,7 @@ if __name__ == "__main__":
     #print(res)
     pars = [-2 + 0.05*i for i in range(80)]
     vals = [f(p) for p in pars]
-    grads = [get_gradient(op, circ, [p], sym, backend, shots=1000) for  p in pars]
+    grads = [get_gradient(op, circ, [p], sym, backend, shots=1000)[0] for  p in pars]
 
     import pandas as pd
     df = pd.DataFrame()

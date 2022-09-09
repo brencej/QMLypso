@@ -60,53 +60,5 @@ if __name__ == "__main__":
         return v
 
     jac = get_scipy_wrapper_for_gradient(op, circ, sym, backend, shots=1000)
-    print(jac([1]))
-    res = minimize(f, par, method="CG", bounds=((-2, 2)), jac=jac)
-    #res = differential_evolution(f, [(-2,2)])
+    res = minimize(f, par, method="CG", bounds=((0, 2)), jac=jac)
     print(res)
-    
-    if False:
-        pars = [-2 + 0.05*i for i in range(80)]
-        vals = [f(p) for p in pars]
-        grads = [get_gradient(op, circ, [p], sym, backend, shots=1000)[0] for  p in pars]
-
-        import pandas as pd
-        df = pd.DataFrame()
-        df["par"] = pars
-        df["val"] = vals
-        df["grad"] = grads
-        df.to_csv("experiment1_1000shots.csv")
-        plt.plot(pars, vals)
-        plt.plot(pars, grads)
-        plt.show()
-
-    if False:
-        tol = 1e-2; step = 0.01; max_n = 100; n=0
-        best_par = list(par)
-        best_val = f(par)
-        last_best_val = 10**9
-        pars, vals = [best_par], [best_val]
-
-        while np.abs(best_val - last_best_val)/last_best_val > tol and n < max_n:
-            grad = get_gradient(op, circ, pars[-1], sym, backend)
-            print(pars[-1], grad, vals[-1])
-            new_par = list(np.array(pars[-1]) - step*np.array(grad))
-            new_val = f(new_par)
-            pars += [new_par]; vals += [new_val]
-            if new_val < best_val:
-                last_best_val = best_val
-                best_val = new_val
-                best_par = new_par
-            n += 1
-        
-        print("Minimum: ", best_par, best_val)
-
-        plt.plot(vals)
-        plt.show()
-
-
-    #circ, syms, parameters = get_randomized_circuit(3, 2)
-    #print(circ)
-    #grad = get_gradient(op, circ, parameters, syms, backend)
-
-    #print(grad)

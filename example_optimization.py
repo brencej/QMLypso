@@ -1,7 +1,7 @@
 import numpy as np
 from sympy import symbols
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
+from scipy.optimize import minimize, differential_evolution
 
 from pytket import Circuit, Qubit
 from pytket.circuit import Pauli
@@ -12,7 +12,7 @@ from pytket.pauli import Pauli, QubitPauliString
 from pytket.utils import get_operator_expectation_value
 from pytket.partition import PauliPartitionStrat
 
-from gradient import get_gradient
+from gradient import get_gradient, get_scipy_wrapper_for_gradient
 
 def get_randomized_circuit(n_par, n_q):
     # circuit with random no of parameters and random number of qubits (but fixed gates) for testing stuff, symbolic
@@ -49,9 +49,9 @@ if __name__ == "__main__":
 
     circ, a = get_test_circuit()
     sym = [a]
-    par = [0.5]
+    par = [0.1]
     
-    def f(*pars):
+    def f(pars):
         par_dict = dict(zip(sym, pars))
         circ_par = circ.copy()
         circ_par.symbol_substitution(par_dict)
@@ -59,21 +59,26 @@ if __name__ == "__main__":
         print(pars, v)
         return v
 
-    #res = minimize(f, par, method="BFGS")
-    #print(res)
-    pars = [-2 + 0.05*i for i in range(80)]
-    vals = [f(p) for p in pars]
-    grads = [get_gradient(op, circ, [p], sym, backend, shots=1000)[0] for  p in pars]
+    jac = get_scipy_wrapper_for_gradient(op, circ, sym, backend, shots=1000)
+    print(jac([1]))
+    res = minimize(f, par, method="CG", bounds=((-2, 2)), jac=jac)
+    #res = differential_evolution(f, [(-2,2)])
+    print(res)
+    
+    if False:
+        pars = [-2 + 0.05*i for i in range(80)]
+        vals = [f(p) for p in pars]
+        grads = [get_gradient(op, circ, [p], sym, backend, shots=1000)[0] for  p in pars]
 
-    import pandas as pd
-    df = pd.DataFrame()
-    df["par"] = pars
-    df["val"] = vals
-    df["grad"] = grads
-    df.to_csv("experiment1_1000shots.csv")
-    plt.plot(pars, vals)
-    plt.plot(pars, grads)
-    plt.show()
+        import pandas as pd
+        df = pd.DataFrame()
+        df["par"] = pars
+        df["val"] = vals
+        df["grad"] = grads
+        df.to_csv("experiment1_1000shots.csv")
+        plt.plot(pars, vals)
+        plt.plot(pars, grads)
+        plt.show()
 
     if False:
         tol = 1e-2; step = 0.01; max_n = 100; n=0
